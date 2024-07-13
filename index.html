@@ -12,16 +12,48 @@
         <button type="submit">Download Video</button>
     </form>
     <div id="videoContainer"></div>
+    <div id="errorContainer" style="color: red;"></div>
     <script>
+        // エラーメッセージを生成する関数
+        function getErrorMessage(error) {
+            let message;
+            switch (error.code) {
+                case 'INVALID_URL':
+                    message = 'URLが正しくありません。YouTubeのリンクをもう一度確認してください。';
+                    break;
+                case 'NETWORK_ERROR':
+                    message = 'ネットワークエラーが発生しました。インターネットの接続を確認してください。';
+                    break;
+                case 'VIDEO_NOT_FOUND':
+                    message = '動画が見つかりませんでした。URLをもう一度確認してください。';
+                    break;
+                case 'API_LIMIT_EXCEEDED':
+                    message = 'APIのリクエスト上限を超えました。少し待ってからもう一度試してください。';
+                    break;
+                case 'UNKNOWN_ERROR':
+                default:
+                    message = '不明なエラーが発生しました。もう一度試してください。';
+                    break;
+            }
+            return message;
+        }
+
         document.getElementById('downloadForm').addEventListener('submit', function(event) {
             event.preventDefault();
             const url = document.getElementById('url').value;
             const videoContainer = document.getElementById('videoContainer');
-            videoContainer.innerHTML = 'Processing...';
+            const errorContainer = document.getElementById('errorContainer');
+            videoContainer.innerHTML = '処理中...';
+            errorContainer.innerHTML = '';
 
             // 外部APIのURLを使用（例: ytdl-api）
             fetch(`https://api.example.com/youtube?url=${encodeURIComponent(url)}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         const video = document.createElement('video');
@@ -30,12 +62,16 @@
                         videoContainer.innerHTML = '';
                         videoContainer.appendChild(video);
                     } else {
-                        videoContainer.innerHTML = 'Failed to process the URL.';
+                        const error = new Error(data.message || 'Failed to process the URL.');
+                        error.code = data.code || 'UNKNOWN_ERROR';
+                        throw error;
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    videoContainer.innerHTML = 'An error occurred.';
+                    videoContainer.innerHTML = '';
+                    const errorMessage = getErrorMessage(error);
+                    errorContainer.innerHTML = 'エラーが発生しました: ' + errorMessage;
                 });
         });
     </script>
