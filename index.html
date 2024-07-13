@@ -32,7 +32,7 @@
                     break;
                 case 'UNKNOWN_ERROR':
                 default:
-                    message = '不明なエラーが発生しました。もう一度試してください。';
+                    message = '不明なエラーが発生しました。詳細: ' + error.message;
                     break;
             }
             return message;
@@ -50,7 +50,9 @@
             fetch(`https://api.example.com/youtube?url=${encodeURIComponent(url)}`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok ' + response.statusText);
+                        const error = new Error('Network response was not ok ' + response.statusText);
+                        error.code = 'NETWORK_ERROR';
+                        throw error;
                     }
                     return response.json();
                 })
